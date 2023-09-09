@@ -21,8 +21,14 @@ VALUES  ("M Engineer 1", 30000, 2),
         ("Shift Operator 2", 40000, 3);
 
 INSERT INTO employee (first_name, last_name, role_id, manager_id)
-VALUES  ("John", "Johnston", 2, 3),
-        ("Joe", "Johnston", 1, 3),
-        ("Jimmy", "Johnston", 5, null),
-        ("Jackie", "Johnston", 3, 3),
-        ("Jennifer", "Johnston", 4, 3);
+VALUES  ("-", "-", null, "-"),
+        ("John", "Johnston", 2, 4),
+        ("Joe", "Johnston", 1, 4),
+        ("Jimmy", "Johnston", 5, 1),
+        ("Jackie", "Johnston", 3, 4),
+        ("Jennifer", "Johnston", 4, 4),
+        ("Han", "Solo", 9, 1),
+        ("Luke", "Skywalker", 13, 7),
+        ("Leia", "Organa", 10, 10),
+        ("Ben", "Kenobi", 12, 1),
+        ("Wedge", "Antilles", 14, 7);
