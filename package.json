@@ -4,7 +4,9 @@
   "main": "server.js",
   "license": "None",
   "dependencies": {
+    "console.table": "^0.10.0",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "inquirer": "^8.2.6",
     "mysql2": "^3.6.0"
   }
