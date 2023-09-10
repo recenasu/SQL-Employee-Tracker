@@ -4,16 +4,16 @@ const inquirer = require('inquirer');
 const mysql = require('mysql2');
 require('dotenv').config();
 const consoleTable = require('console.table');
-const express = require('express');
 
-const PORT = process.env.PORT || 3001;
-const app = express();
-
-
-// Express middleware
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
-
+// Define variable for connecting to the database. This is used in all the query functions below.
+var db = mysql.createConnection(
+    {
+        host: 'localhost',
+        user: process.env.DB_USER,
+        password: process.env.DB_USER_PASSWORD,
+        database: process.env.DB_NAME
+    },
+);
 
 // ***ADD DEPARTMENT*** This function adds a department to the database.
 function addDept() {
@@ -29,16 +29,6 @@ function addDept() {
         .then((response) => {
 
             var sql = `INSERT INTO department (name) VALUES ('${response.newDept}')`;
-
-            // Connect to database
-            const db = mysql.createConnection(
-                {
-                    host: 'localhost',
-                    user: process.env.DB_USER,
-                    password: process.env.DB_USER_PASSWORD,
-                    database: process.env.DB_NAME
-                },
-            );
 
             // Run query, display results in the console:
             db.query(sql, (err, result) => {
@@ -57,15 +47,6 @@ function addDept() {
 // ***RUN QUERY*** This function runs one of the canned queries and prints the result to the console. The name of the .sql file containing the query is the argument.
 function runQuery(queryFile) {
 
-    // Connect to database
-    const db = mysql.createConnection(
-        {
-            host: 'localhost',
-            user: process.env.DB_USER,
-            password: process.env.DB_USER_PASSWORD,
-            database: process.env.DB_NAME
-        },
-    );
     // Assign query .sql file to variable
     let sql = fs.readFileSync(`./db/${queryFile}`, 'utf-8');
 
