@@ -15,7 +15,46 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
 
-// This function runs one of the canned queries on the database and prints the result to the console. The name of the .sql file containing the query is the argument.
+// ***ADD DEPARTMENT*** This function adds a department to the database.
+function addDept() {
+
+    inquirer
+        .prompt([
+            {
+                type: 'input',
+                message: 'Please enter the name of the new department: (less than 30 characters)',
+                name: 'newDept',
+            }
+        ])
+        .then((response) => {
+
+            var sql = `INSERT INTO department (name) VALUES ('${response.newDept}')`;
+
+            // Connect to database
+            const db = mysql.createConnection(
+                {
+                    host: 'localhost',
+                    user: process.env.DB_USER,
+                    password: process.env.DB_USER_PASSWORD,
+                    database: process.env.DB_NAME
+                },
+            );
+
+            // Run query, display results in the console:
+            db.query(sql, (err, result) => {
+                if (err) {
+                    console.log(err);
+                }
+                // Insert blank line before result for better readability
+                console.log(`\n ${response.newDept} department added.`);
+                init();
+            });
+
+        })
+
+
+}
+// ***RUN QUERY*** This function runs one of the canned queries and prints the result to the console. The name of the .sql file containing the query is the argument.
 function runQuery(queryFile) {
 
     // Connect to database
@@ -35,6 +74,7 @@ function runQuery(queryFile) {
         if (err) {
             console.log(err);
         }
+        // Insert blank line before result for better readability
         console.log('\n')
         console.table(result);
         init();
@@ -77,8 +117,7 @@ function init() {
                     runQuery('employees_query.sql');
                     break;
                 case 'Add a Department':
-                    console.log('good choice!');
-                    // addDepartment();
+                    addDept();
                     break;
                 case 'Add a Role':
                     console.log('good choice!');
@@ -96,7 +135,7 @@ function init() {
                     console.log(`no selection`);
             };
         });
-        
+
 };
 
 init();
