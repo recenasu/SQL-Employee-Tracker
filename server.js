@@ -139,35 +139,40 @@ function addEmployee() {
 
     // Execute the query
     function roleQuery() {
+        return new Promise((resolve, reject) => {
         db.query('SELECT title FROM role', (err, result) => {
             if (err) {
-                console.log(err);
-                return;
+                reject(err);
+            } else {
+                // Define a variable that will hold the manager names pulled from the database. This will be used to populate the selection menu for the manager prompt.
+                rolesMenu = result.map((row) => row.title);
+                resolve()
             }
-            // Define a variable that will hold the manager names pulled from the database. This will be used to populate the selection menu for the manager prompt.
-            rolesMenu = result.map((row) => row.title);
         });
+    });
     };
 
     function managersQuery() {
+        return new Promise((resolve, reject) => {
 
-        // Assign query .sql file to variable
-        let sql = fs.readFileSync(`./db/managers_query.sql`, 'utf-8');
-
-        db.query(sql, (err, result) => {
-            if (err) {
-                console.log(err);
-                return;
-            } else {
-                // Define a variable that will hold the manager names pulled from the database. This will be used to populate the selection menu for the manager prompt.
-                managersMenu = result.map((row) => row.managers);
-            }
+            // Assign query .sql file to variable
+            let sql = fs.readFileSync(`./db/managers_query.sql`, 'utf-8');
+            
+            db.query(sql, (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    // Define a variable that will hold the manager names pulled from the database. This will be used to populate the selection menu for the manager prompt.
+                    managersMenu = result.map((row) => row.managers);
+                    resolve();
+                }
+            });
         });
-    };
+        };
 
-    roleQuery();
-    managersQuery();
-
+    roleQuery()
+    .then(() => managersQuery())
+    .then(() => {
     inquirer
         .prompt([
             {
@@ -203,38 +208,41 @@ function addEmployee() {
             },
         ])
         .then((response) => {
-
-                        
+                 
+            // Get the employee id of the selected manager and assign it to a variable.
             let str = response.newEmployeeMgr;
             let numbers = str.match(/\d+/g);
             var manager_id = numbers[0];
 
-            var queryForRoleIDResult;
-
+            // Returns the role id of the selected role 
             function queryForRoleID() {
-                db.query(`SELECT id FROM role WHERE title = '${response.newEmployeeRole}'`, (err, result) => {
-                    if (err) {
-                        console.log(err);
-                        return;
-                    } else {
-                        queryForRoleIDResult = result.map((row) => row.title);
-                    }
+                return new Promise((resolve, reject) => {
+                    db.query(`SELECT id FROM role WHERE title = '${response.newEmployeeRole}'`, (err, result) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(result.map((row) => row.id));
+                        }
+                    });
                 });
             };
 
-            queryForRoleID();
+            queryForRoleID()
+            .then((roleID) => {
 
-            // Run query, display results in the console:
-            db.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id, is_manager) VALUES ('${response.newEmployeeFirst}', '${response.newEmployeeLast}', ${queryForRoleIDResult[0].id.toString()}, '${manager_id})`, (err, result) => {
-                if (err) {
-                    console.log(err);
-                } else {
-                    // Insert blank line before result for better readability
-                    console.log(`\n ${response.newEmployeeFirst} ${response.newEmployeeLast}added.`);
-                    init();
-                };
+                // Run query, display results in the console:
+                db.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id, is_manager) VALUES ('${response.newEmployeeFirst}', '${response.newEmployeeLast}', ${roleID[0]}, ${manager_id}, '${response.isEmployeeMgr}')`, (err, result) => {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        // Insert blank line before result for better readability
+                        console.log(`\n ${response.newEmployeeFirst} ${response.newEmployeeLast}added.`);
+                        init();
+                    };
+                });
             });
         });
+    });
 };
 
 
