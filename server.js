@@ -277,7 +277,7 @@ function updateEmployeeRole() {
                 if (err) {
                     reject(err);
                 } else {
-                    // Define a variable that will hold the manager names pulled from the database. This will be used to populate the selection menu for the manager prompt.
+                    // Define a variable that will hold the role names pulled from the database. This will be used to populate the selection menu for the roles prompt.
                     rolesMenu = result.map((row) => row.title);
                     resolve()
                 }
@@ -434,10 +434,348 @@ function updateEmployeeMgr() {
         });
 };
 
+// ***DELETE A ROLE*** 
+// This function prompts the user to choose a role to delete from the database. All users assigned to the role are changed to the "-unassigned-" role.
+function deleteRole() {
+
+    var rolesMenu;
+
+    // Assign query .sql file to variable
+    let sql = fs.readFileSync(`./db/role_titles_query.sql`, 'utf-8');
+
+    // Execute a query for roles to populate the selection menu
+    function rolesQuery() {
+        return new Promise((resolve, reject) => {
+            db.query(sql, (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    // Define a variable that will hold the role names pulled from the database. This will be used to populate the selection menu for the manager prompt.
+                    rolesMenu = result.map((row) => row.title);
+                    resolve()
+                }
+            });
+        });
+    };
+
+    rolesQuery()
+        .then(() => {
+            inquirer
+                .prompt([
+                    {
+                        type: 'list',
+                        message: 'Please select a role for deletion:',
+                        name: 'selectedRole',
+                        choices: rolesMenu,
+                    },
+                ])
+                .then((response) => {
+
+                    var selectedRole = response.selectedRole;
+
+                    inquirer
+                        .prompt([
+                            {
+                                type: 'list',
+                                message: `Are you sure you want to delete the ${selectedRole} role? (impacted employees will be assigned to the -unassigned- role)`,
+                                name: 'selection',
+                                choices: ['No',
+                                    'Yes']
+                            },
+                        ])
+                        .then((result) => {
+                            if (result.selection == 'No') {
+                                init();
+                            } else {
+
+                                var roleIDToBeDeleted;
+
+                                function getRoleID() {
+                                    return new Promise((resolve, reject) => {
+                                        db.query(`SELECT id FROM role WHERE title = '${selectedRole}'`, (err, result) => {
+                                            if (err) {
+                                                reject(err);
+                                            } else {
+                                                // Define a variable that will hold the role names pulled from the database. This will be used to populate the selection menu for the manager prompt.
+                                                roleIDToBeDeleted = result.map((row) => row.id);
+                                                resolve()
+                                            }
+                                        });
+                                    });
+                                };
+                            }
+
+                            getRoleID()
+                                .then(() => {
+
+                                    function updateAffectedEmployees() {
+                                        return new Promise((resolve, reject) => {
+                                            db.query(`UPDATE employee SET role_id = 1 WHERE role_id = '${roleIDToBeDeleted[0]}'`, (err, result) => {
+                                                if (err) {
+                                                    reject(err);
+                                                } else {
+                                                    resolve()
+                                                }
+                                            });
+                                        });
+                                    };
+
+                                    updateAffectedEmployees()
+                                        .then(() => {
+
+                                            // Run query to update the database and display results in the console:
+                                            db.query(`DELETE from role WHERE title = '${selectedRole}'`, (err, result) => {
+                                                if (err) {
+                                                    console.log(err);
+                                                } else {
+                                                    // Insert blank line before result for better readability
+                                                    console.log(`\n ${selectedRole} role deleted.\n`);
+                                                    init();
+                                                };
+                                            });
+
+                                        });
+
+
+                                });
+                        });
+                });
+        });
+};
+
+// ***DELETE AN EMPLOYEE*** 
+// This function prompts the user to choose an employee to delete from the database.
+function deleteEmployee() {
+
+    var employeesMenu;
+
+    // Execute a query for roles to populate the selection menu
+    function employeesQuery() {
+        return new Promise((resolve, reject) => {
+
+            // Assign query .sql file to variable
+            let sql = fs.readFileSync(`./db/employees_names_query.sql`, 'utf-8');
+
+            db.query(sql, (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    // Define a variable that will hold the employee names pulled from the database. This will be used to populate the selection menu for the employee selection prompt.
+                    employeesMenu = result.map((row) => row.employees);
+                    resolve();
+                }
+            });
+        });
+    };
+
+    employeesQuery()
+        .then(() => {
+            inquirer
+                .prompt([
+                    {
+                        type: 'list',
+                        message: 'Please select an employee for deletion:',
+                        name: 'selectedEmployee',
+                        choices: employeesMenu,
+                    },
+                ])
+                .then((response) => {
+
+                    var selectedEmployee = response.selectedEmployee;
+
+                    inquirer
+                        .prompt([
+                            {
+                                type: 'list',
+                                message: `Are you sure you want to delete ${selectedEmployee}?`,
+                                name: 'selection',
+                                choices: ['No',
+                                    'Yes']
+                            },
+                        ])
+                        .then((result) => {
+
+                            if (result.selection == 'No') {
+                                init();
+                            } else {
+
+                                // Get the employee id from selected employee string and assign to variable for use in the database query.
+                                let numbersEmployee = selectedEmployee.match(/\d+/g);
+                                var employee_id = numbersEmployee[0];
+
+                                // Run query to update the database and display results in the console:
+                                db.query(`DELETE from employee WHERE id = ${employee_id}`, (err, result) => {
+                                    if (err) {
+                                        console.log(err);
+                                    } else {
+                                        // Insert blank line before result for better readability
+                                        console.log(`\n ${selectedEmployee} deleted.\n`);
+                                        init();
+                                    };
+                                });
+
+                            }
+
+
+                        });
+                });
+        });
+};
+
+
+// ***DELETE A DEPARTMENT*** 
+// This function prompts the user to choose a department to delete from the database. All users assigned to the department are changed to the "-unassigned-" role.
+function deleteDepartment() {
+
+    var departmentsMenu;
+
+    // Execute a query for roles to populate the selection menu
+    function departmentsQuery() {
+        return new Promise((resolve, reject) => {
+
+            db.query('SELECT name FROM department', (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    // Define a variable that will hold the department names pulled from the database. This will be used to populate the selection menu for the department selection prompt.
+                    departmentsMenu = result.map((row) => row.name);
+                    resolve();
+                }
+            });
+        });
+    };
+
+
+    departmentsQuery()
+        .then(() => {
+            inquirer
+                .prompt([
+                    {
+                        type: 'list',
+                        message: 'Please select a department for deletion:',
+                        name: 'selectedDept',
+                        choices: departmentsMenu,
+                    },
+                ])
+                .then((response) => {
+
+                    var selectedDept = response.selectedDept;
+
+                    inquirer
+                        .prompt([
+                            {
+                                type: 'list',
+                                message: `Are you sure you want to delete the ${selectedDept} department? (impacted employees will be assigned to the -unassigned- role)`,
+                                name: 'selection',
+                                choices: ['No',
+                                    'Yes']
+                            },
+                        ])
+                        .then((result) => {
+                            if (result.selection == 'No') {
+                                init();
+                            } else {
+
+                                var deptIDToBeDeleted;
+
+                                function getRoleID() {
+                                    return new Promise((resolve, reject) => {
+                                        db.query(`SELECT id FROM department WHERE name = '${selectedDept}'`, (err, result) => {
+                                            if (err) {
+                                                reject(err);
+                                            } else {
+                                                deptIDToBeDeleted = result.map((row) => row.id);
+                                                resolve()
+                                            }
+                                        });
+                                    });
+                                };
+                            }
+
+                            getRoleID()
+                                .then(() => {
+
+                                    function updateAffectedEmployees() {
+                                        return new Promise((resolve, reject) => {
+                                            db.query(`UPDATE employee JOIN role ON employee.role_id = role.id JOIN department ON role.department_id = department.id SET employee.role_id = 1 WHERE role.department_id = ${deptIDToBeDeleted[0]}`, (err, result) => {
+                                                if (err) {
+                                                    reject(err);
+                                                } else {
+                                                    resolve()
+                                                }
+                                            });
+                                        });
+                                    };
+
+                                    updateAffectedEmployees()
+                                        .then(() => {
+
+                                            // Run query to update the database and display results in the console:
+                                            db.query(`DELETE department, role FROM department JOIN role ON department.id = role.department_id WHERE department.id = '${deptIDToBeDeleted[0]}' AND role.department_id = '${deptIDToBeDeleted[0]}'`, (err, result) => {
+                                                if (err) {
+                                                    console.log(err);
+                                                } else {
+                                                    // Insert blank line before result for better readability
+                                                    console.log(`\n ${selectedDept} department deleted.\n`);
+                                                    init();
+                                                };
+                                            });
+
+                                        });
+
+
+                                });
+                        });
+                });
+        });
+};
+
+// ***DELETE OPTIONS SUB-MENU***
+// This function provides the menu options under the Delete Options selection.
+function deleteSubmenu() {
+    console.log('\n------------------DELETE OPTIONS--------------------\n');
+
+    // Inquirer prompts:
+    inquirer
+        .prompt([
+            {
+                type: 'list',
+                message: 'Please select an option:',
+                name: 'deleteSelection',
+                choices: [
+                    'Delete a Department...',
+                    'Delete a Role...',
+                    'Delete an Employee...',
+                    'Return to Main Menu'
+                ]
+            }
+        ])
+        .then((response) => {
+
+            // Execute function based on selection.
+            switch (response.deleteSelection) {
+                case 'Delete a Department...':
+                    deleteDepartment();
+                    break;
+                case 'Delete a Role...':
+                    deleteRole();
+                    break;
+                case 'Delete an Employee...':
+                    deleteEmployee();
+                    break;
+                case 'Return to Main Menu':
+                    init();
+                    break;
+                default:
+                    console.log(`no selection`);
+            };
+        });
+
+};
 
 // This function executes the program.
 function init() {
-    console.log('**EMPLOYEE TRACKER**')
+    console.log('\n---------------------MAIN MENU----------------------\n');
 
     // Inquirer prompts:
     inquirer
@@ -452,11 +790,12 @@ function init() {
                     'View All Employees',
                     'View Employees by Manager',
                     'View Employees by Department',
-                    'Add a Department',
-                    'Add a Role',
-                    'Add an Employee',
-                    'Update an Employee Role',
-                    'Change Employee Manager'
+                    'Add a Department...',
+                    'Add a Role...',
+                    'Add an Employee...',
+                    'Update an Employee Role...',
+                    'Change Employee Manager...',
+                    'Delete Options...'
                 ]
             }
         ])
@@ -479,20 +818,23 @@ function init() {
                 case 'View Employees by Department':
                     runQuery('employees_query_by_dept.sql', callbackTable);
                     break;
-                case 'Add a Department':
+                case 'Add a Department...':
                     addDept();
                     break;
-                case 'Add a Role':
+                case 'Add a Role...':
                     addRole();
                     break;
-                case 'Add an Employee':
+                case 'Add an Employee...':
                     addEmployee();
                     break;
-                case 'Update an Employee Role':
+                case 'Update an Employee Role...':
                     updateEmployeeRole();
                     break;
-                case 'Change Employee Manager':
+                case 'Change Employee Manager...':
                     updateEmployeeMgr();
+                    break;
+                case 'Delete Options...':
+                    deleteSubmenu();
                     break;
                 default:
                     console.log(`no selection`);
@@ -501,6 +843,7 @@ function init() {
 
 };
 
+console.log('******************EMPLOYEE TRACKER******************');
 init();
 
 
