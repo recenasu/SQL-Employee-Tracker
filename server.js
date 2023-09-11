@@ -450,6 +450,8 @@ function init() {
                     'View All Departments',
                     'View All Roles',
                     'View All Employees',
+                    'View Employees by Manager',
+                    'View Employees by Department',
                     'Add a Department',
                     'Add a Role',
                     'Add an Employee',
@@ -470,6 +472,12 @@ function init() {
                     break;
                 case 'View All Employees':
                     runQuery('employees_query.sql', callbackTable);
+                    break;
+                case 'View Employees by Manager':
+                    runQuery('employees_query_by_mgr.sql', callbackTable);
+                    break;
+                case 'View Employees by Department':
+                    runQuery('employees_query_by_dept.sql', callbackTable);
                     break;
                 case 'Add a Department':
                     addDept();
