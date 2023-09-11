@@ -138,7 +138,7 @@ function addEmployee() {
     var managersMenu;
 
     // Execute the query
-    function roleQuery() {
+    function rolesQuery() {
         return new Promise((resolve, reject) => {
         db.query('SELECT title FROM role', (err, result) => {
             if (err) {
@@ -170,7 +170,7 @@ function addEmployee() {
         });
         };
 
-    roleQuery()
+    rolesQuery()
     .then(() => managersQuery())
     .then(() => {
     inquirer
@@ -230,13 +230,112 @@ function addEmployee() {
             queryForRoleID()
             .then((roleID) => {
 
-                // Run query, display results in the console:
+                // Run query to add record to database and display results in the console:
                 db.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id, is_manager) VALUES ('${response.newEmployeeFirst}', '${response.newEmployeeLast}', ${roleID[0]}, ${manager_id}, '${response.isEmployeeMgr}')`, (err, result) => {
                     if (err) {
                         console.log(err);
                     } else {
                         // Insert blank line before result for better readability
-                        console.log(`\n ${response.newEmployeeFirst} ${response.newEmployeeLast}added.`);
+                        console.log(`\n ${response.newEmployeeFirst} ${response.newEmployeeLast}added.\n`);
+                        init();
+                    };
+                });
+            });
+        });
+    });
+};
+
+// ***UPDATE EMPLOYEE ROLE*** 
+// This function prompts the user to choose an employee and then choose the new role to assign to the employee, and updates the database.
+function updateEmployeeRole() {
+
+    var employeesMenu;
+    var rolesMenu;
+
+    // Execute the query
+    function employeesQuery() {
+        return new Promise((resolve, reject) => {
+
+            // Assign query .sql file to variable
+            let sql = fs.readFileSync(`./db/employees_names_query.sql`, 'utf-8');
+            
+            db.query(sql, (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    // Define a variable that will hold the employee names pulled from the database. This will be used to populate the selection menu for the employee selection prompt.
+                    employeesMenu = result.map((row) => row.employees);
+                    resolve();
+                }
+            });
+        });
+        };
+    
+    function rolesQuery() {
+        return new Promise((resolve, reject) => {
+        db.query('SELECT title FROM role', (err, result) => {
+            if (err) {
+                reject(err);
+            } else {
+                // Define a variable that will hold the manager names pulled from the database. This will be used to populate the selection menu for the manager prompt.
+                rolesMenu = result.map((row) => row.title);
+                resolve()
+            }
+        });
+    });
+    };   
+
+    employeesQuery()
+    .then(() => rolesQuery())
+    .then(() => {
+    inquirer
+        .prompt([
+            {
+                type: 'list',
+                message: 'Please select the employee you wish to update:',
+                name: 'selectedEmployee',
+                choices: employeesMenu,
+            },
+            {
+                type: 'list',
+                message: 'Please select a role:',
+                name: 'newEmployeeRole',
+                choices: rolesMenu,
+            },
+        ])
+        .then((response) => {
+                 
+            // Get the employee id of from selected employee string and assign it to a variable for use in the database query.
+            let str = response.selectedEmployee;
+            let numbers = str.match(/\d+/g);
+            var employee_id = numbers[0];
+
+            // Remove the employee id from the selected employee string and assign it to a variable for use in the console.log success message.
+            var employee_name = str.replace(/[0-9]/g, '');
+            
+            // Returns the role id of the selected role 
+            function queryForRoleID() {
+                return new Promise((resolve, reject) => {
+                    db.query(`SELECT id FROM role WHERE title = '${response.newEmployeeRole}'`, (err, result) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(result.map((row) => row.id));
+                        }
+                    });
+                });
+            };
+
+            queryForRoleID()
+            .then((roleID) => {
+
+                // Run query to update the database and display results in the console:
+                db.query(`UPDATE employee SET role_id = ${roleID[0]} WHERE id = ${employee_id}`, (err, result) => {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        // Insert blank line before result for better readability
+                        console.log(`\n ${employee_name} changed to ${response.newEmployeeRole}.\n`);
                         init();
                     };
                 });
@@ -291,8 +390,7 @@ function init() {
                     addEmployee();
                     break;
                 case 'Update an Employee Role':
-                    console.log('good choice!');
-                    // updateEmployeeRole();
+                    updateEmployeeRole();
                     break;
                 default:
                     console.log(`no selection`);
