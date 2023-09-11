@@ -15,8 +15,6 @@ var db = mysql.createConnection(
     },
 );
 
-
-
 // ***TABLE CALLBACK***
 // This is the callback function used for queries that will return a displayed table. This is used for the canned queries the user can run.
 function callbackTable(err, result) {
@@ -26,17 +24,6 @@ function callbackTable(err, result) {
         console.log('\n');
         console.table(result);
         init();
-    }
-}
-
-// ***ARRAY CALLBACK***
-// This is the callback function used for queries that will return an array. This is used for the queries used to populate inquirer menus.
-function callbackArray(err, result) {
-    if (err) {
-        console.log(err);
-    } else {
-        console.log(result);
-        // return result;
     }
 }
 
@@ -57,6 +44,36 @@ function runQuery(queryFile, callback) {
         }
     });
 }
+
+
+// ***ADD DEPARTMENT*** 
+// This function adds a new department to the database.
+function addDept() {
+
+    inquirer
+        .prompt([
+            {
+                type: 'input',
+                message: 'Please enter the name of the new department: (less than 30 characters)',
+                name: 'newDept',
+            }
+        ])
+        .then((response) => {
+
+            var sql = `INSERT INTO department (name) VALUES ('${response.newDept}')`;
+
+            // Run query, display results in the console:
+            db.query(sql, (err, result) => {
+                if (err) {
+                    console.log(err);
+                }
+                // Insert blank line before result for better readability
+                console.log(`\n ${response.newDept} department added.\n`);
+                init();
+            });
+        })
+}
+
 
 // ***ADD ROLE*** 
 // This function prompts the user for input, and then uses the user inputs to add a new role to the database.
@@ -104,7 +121,7 @@ function addRole() {
                             console.log(err);
                         }
                         // Insert blank line before result for better readability
-                        console.log(`\n ${response.newRoleTitle} role added.`);
+                        console.log(`\n ${response.newRoleTitle} role added.\n`);
                         init();
                     });
                 });
@@ -112,33 +129,114 @@ function addRole() {
     });
 };
 
-// ***ADD DEPARTMENT*** 
-// This function adds a new department to the database.
-function addDept() {
+
+// ***ADD EMPLOYEE*** 
+// This function prompts the user for input, and then uses the user inputs to add a new employee to the database.
+function addEmployee() {
+
+    var rolesMenu;
+    var managersMenu;
+
+    // Execute the query
+    function roleQuery() {
+        db.query('SELECT title FROM role', (err, result) => {
+            if (err) {
+                console.log(err);
+                return;
+            }
+            // Define a variable that will hold the manager names pulled from the database. This will be used to populate the selection menu for the manager prompt.
+            rolesMenu = result.map((row) => row.title);
+        });
+    };
+
+    function managersQuery() {
+
+        // Assign query .sql file to variable
+        let sql = fs.readFileSync(`./db/managers_query.sql`, 'utf-8');
+
+        db.query(sql, (err, result) => {
+            if (err) {
+                console.log(err);
+                return;
+            } else {
+                // Define a variable that will hold the manager names pulled from the database. This will be used to populate the selection menu for the manager prompt.
+                managersMenu = result.map((row) => row.managers);
+            }
+        });
+    };
+
+    roleQuery();
+    managersQuery();
 
     inquirer
         .prompt([
             {
                 type: 'input',
-                message: 'Please enter the name of the new department: (less than 30 characters)',
-                name: 'newDept',
-            }
+                message: 'What is the first name of the new employee? (less than 30 characters)',
+                name: 'newEmployeeFirst',
+            },
+            {
+                type: 'input',
+                message: 'What is the last name of the new employee? (less than 30 characters)',
+                name: 'newEmployeeLast',
+            },
+            {
+                type: 'list',
+                message: 'Please select the role for the new employee:',
+                name: 'newEmployeeRole',
+                choices: rolesMenu,
+            },
+            {
+                type: 'list',
+                message: 'Please select the manager of the new employee:',
+                name: 'newEmployeeMgr',
+                choices: managersMenu,
+            },
+            {
+                type: 'list',
+                message: 'Is the new employee a manager?',
+                name: 'isEmployeeMgr',
+                choices: [
+                    'No',
+                    'Yes'
+                ],
+            },
         ])
         .then((response) => {
 
-            var sql = `INSERT INTO department (name) VALUES ('${response.newDept}')`;
+                        
+            let str = response.newEmployeeMgr;
+            let numbers = str.match(/\d+/g);
+            var manager_id = numbers[0];
+
+            var queryForRoleIDResult;
+
+            function queryForRoleID() {
+                db.query(`SELECT id FROM role WHERE title = '${response.newEmployeeRole}'`, (err, result) => {
+                    if (err) {
+                        console.log(err);
+                        return;
+                    } else {
+                        queryForRoleIDResult = result.map((row) => row.title);
+                    }
+                });
+            };
+
+            queryForRoleID();
 
             // Run query, display results in the console:
-            db.query(sql, (err, result) => {
+            db.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id, is_manager) VALUES ('${response.newEmployeeFirst}', '${response.newEmployeeLast}', ${queryForRoleIDResult[0].id.toString()}, '${manager_id})`, (err, result) => {
                 if (err) {
                     console.log(err);
-                }
-                // Insert blank line before result for better readability
-                console.log(`\n ${response.newDept} department added.`);
-                init();
+                } else {
+                    // Insert blank line before result for better readability
+                    console.log(`\n ${response.newEmployeeFirst} ${response.newEmployeeLast}added.`);
+                    init();
+                };
             });
-        })
-}
+        });
+};
+
 
 // This function executes the program.
 function init() {
@@ -182,8 +280,7 @@ function init() {
                     addRole();
                     break;
                 case 'Add an Employee':
-                    console.log('good choice!');
-                    // addEmployee();
+                    addEmployee();
                     break;
                 case 'Update an Employee Role':
                     console.log('good choice!');
