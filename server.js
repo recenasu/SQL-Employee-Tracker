@@ -15,7 +15,105 @@ var db = mysql.createConnection(
     },
 );
 
-// ***ADD DEPARTMENT*** This function adds a department to the database.
+
+
+// ***TABLE CALLBACK***
+// This is the callback function used for queries that will return a displayed table. This is used for the canned queries the user can run.
+function callbackTable(err, result) {
+    if (err) {
+        console.log(err);
+    } else {
+        console.log('\n');
+        console.table(result);
+        init();
+    }
+}
+
+// ***ARRAY CALLBACK***
+// This is the callback function used for queries that will return an array. This is used for the queries used to populate inquirer menus.
+function callbackArray(err, result) {
+    if (err) {
+        console.log(err);
+    } else {
+        console.log(result);
+        // return result;
+    }
+}
+
+// ***RUN QUERY***
+// This function runs one of the canned queries and executes the specified callback function. The name of the .sql file containing the query is the first argument. The name of the callback function is the second argument.
+function runQuery(queryFile, callback) {
+
+    // Assign query .sql file to variable
+    let sql = fs.readFileSync(`./db/${queryFile}`, 'utf-8');
+
+    // Run query, display results in the console:
+    db.query(sql, (err, result) => {
+        if (err) {
+            console.log(err);
+            callback(err, null);
+        } else {
+            callback(null, result);
+        }
+    });
+}
+
+// ***ADD ROLE*** 
+// This function prompts the user for input, and then uses the user inputs to add a new role to the database.
+function addRole() {
+
+    // Execute the query
+    db.query('SELECT name FROM department', (err, result) => {
+        if (err) {
+            console.log(err);
+            return;
+        }
+        // Define a variable that will hold the department names pulled from the database. This will be used to populate the selection menu for the department prompt.
+        var deptsMenu = result.map((row) => row.name);
+
+        inquirer
+            .prompt([
+                {
+                    type: 'input',
+                    message: 'Please enter the title of the new role: (less than 30 characters)',
+                    name: 'newRoleTitle',
+                },
+                {
+                    type: 'input',
+                    message: 'Please enter the salary for the new role: (round to the nearest dollar)',
+                    name: 'newRoleSalary',
+                },
+                {
+                    type: 'list',
+                    message: 'Please select the department for the new role:',
+                    name: 'newRoleDept',
+                    choices: deptsMenu,
+                }
+            ])
+            .then((response) => {
+
+                db.query(`SELECT id FROM department WHERE name = '${response.newRoleDept}'`, (err, result) => {
+                    if (err) {
+                        console.log(err);
+                        return;
+                    }
+
+                    // Run query, display results in the console:
+                    db.query(`INSERT INTO role (title, salary, department_id) VALUES ('${response.newRoleTitle}', '${response.newRoleSalary}', ${result[0].id.toString()})`, (err, result) => {
+                        if (err) {
+                            console.log(err);
+                        }
+                        // Insert blank line before result for better readability
+                        console.log(`\n ${response.newRoleTitle} role added.`);
+                        init();
+                    });
+                });
+            });
+    });
+};
+
+// ***ADD DEPARTMENT*** 
+// This function adds a new department to the database.
 function addDept() {
 
     inquirer
@@ -39,27 +137,7 @@ function addDept() {
                 console.log(`\n ${response.newDept} department added.`);
                 init();
             });
-
         })
-
-
-}
-// ***RUN QUERY*** This function runs one of the canned queries and prints the result to the console. The name of the .sql file containing the query is the argument.
-function runQuery(queryFile) {
-
-    // Assign query .sql file to variable
-    let sql = fs.readFileSync(`./db/${queryFile}`, 'utf-8');
-
-    // Run query, display results in the console:
-    db.query(sql, (err, result) => {
-        if (err) {
-            console.log(err);
-        }
-        // Insert blank line before result for better readability
-        console.log('\n')
-        console.table(result);
-        init();
-    });
 }
 
 // This function executes the program.
@@ -89,20 +167,19 @@ function init() {
             // Execute function based on selection.
             switch (response.initialSelection) {
                 case 'View All Departments':
-                    runQuery('departments_query.sql');
+                    runQuery('departments_query.sql', callbackTable);
                     break;
                 case 'View All Roles':
-                    runQuery('roles_query.sql');
+                    runQuery('roles_query.sql', callbackTable);
                     break;
                 case 'View All Employees':
-                    runQuery('employees_query.sql');
+                    runQuery('employees_query.sql', callbackTable);
                     break;
                 case 'Add a Department':
                     addDept();
                     break;
                 case 'Add a Role':
-                    console.log('good choice!');
-                    // addRole();
+                    addRole();
                     break;
                 case 'Add an Employee':
                     console.log('good choice!');
