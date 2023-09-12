@@ -236,7 +236,7 @@ function addEmployee() {
                                     console.log(err);
                                 } else {
                                     // Insert blank line before result for better readability
-                                    console.log(`\n ${response.newEmployeeFirst} ${response.newEmployeeLast}added.\n`);
+                                    console.log(`\n ${response.newEmployeeFirst} ${response.newEmployeeLast} added.\n`);
                                     init();
                                 };
                             });
@@ -730,6 +730,45 @@ function deleteDepartment() {
         });
 };
 
+// ***VIEW BUDGET OPTIONS SUB-MENU***
+// This function provides the menu options under the View Budget Options selection.
+function budgetSubmenu() {
+    console.log('\n------------------VIEW BUDGET OPTIONS--------------------\n');
+
+    // Inquirer prompts:
+    inquirer
+        .prompt([
+            {
+                type: 'list',
+                message: 'Please select an option:',
+                name: 'budgetSelection',
+                choices: [
+                    'View Total Budget',
+                    'View Department Budgets',
+                    'Return to Main Menu'
+                ]
+            }
+        ])
+        .then((response) => {
+
+            // Execute function based on selection.
+            switch (response.budgetSelection) {
+                case 'View Total Budget':
+                    runQuery('total_budget_query.sql', callbackTable);
+                    break;
+                case 'View Department Budgets':
+                    runQuery('budget_by_dept_query.sql', callbackTable);
+                    break;
+                case 'Return to Main Menu':
+                    init();
+                    break;
+                default:
+                    console.log(`no selection`);
+            };
+        });
+
+};
+
 // ***DELETE OPTIONS SUB-MENU***
 // This function provides the menu options under the Delete Options selection.
 function deleteSubmenu() {
@@ -795,7 +834,8 @@ function init() {
                     'Add an Employee...',
                     'Update an Employee Role...',
                     'Change Employee Manager...',
-                    'Delete Options...'
+                    'Delete Options...',
+                    'Budget View Options...'
                 ]
             }
         ])
@@ -835,6 +875,9 @@ function init() {
                     break;
                 case 'Delete Options...':
                     deleteSubmenu();
+                    break;
+                    case 'Budget View Options...':
+                    budgetSubmenu();
                     break;
                 default:
                     console.log(`no selection`);
