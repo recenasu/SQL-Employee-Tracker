@@ -16,7 +16,7 @@ var db = mysql.createConnection(
 );
 
 // ***TABLE CALLBACK***
-// This is the callback function used for queries that will return a displayed table. This is used for the canned queries the user can run.
+// Callback function used for queries that will return a displayed table. This is used for the canned queries the user can run.
 function callbackTable(err, result) {
     if (err) {
         console.log(err);
@@ -28,7 +28,7 @@ function callbackTable(err, result) {
 }
 
 // ***RUN QUERY***
-// This function runs one of the canned queries and executes the specified callback function. The name of the .sql file containing the query is the first argument. The name of the callback function is the second argument.
+// Runs one of the canned queries and executes the specified callback function. The name of the .sql file containing the query is the first argument. The name of the callback function is the second argument.
 function runQuery(queryFile, callback) {
 
     // Assign query .sql file to variable
@@ -47,7 +47,7 @@ function runQuery(queryFile, callback) {
 
 
 // ***ADD DEPARTMENT*** 
-// This function adds a new department to the database.
+// Adds a new department to the database using user inputs.
 function addDept() {
 
     inquirer
@@ -62,12 +62,10 @@ function addDept() {
 
             var sql = `INSERT INTO department (name) VALUES ('${response.newDept}')`;
 
-            // Run query, display results in the console:
             db.query(sql, (err, result) => {
                 if (err) {
                     console.log(err);
                 }
-                // Insert blank line before result for better readability
                 console.log(`\n ${response.newDept} department added.\n`);
                 init();
             });
@@ -85,7 +83,7 @@ function addRole() {
             console.log(err);
             return;
         }
-        // Define a variable that will hold the department names pulled from the database. This will be used to populate the selection menu for the department prompt.
+        // Variable to hold department names pulled from the database. Used to populate the selection menu for the 'newRoleDep' prompt.
         var deptsMenu = result.map((row) => row.name);
 
         inquirer
@@ -115,12 +113,11 @@ function addRole() {
                         return;
                     }
 
-                    // Run query, display results in the console:
                     db.query(`INSERT INTO role (title, salary, department_id) VALUES ('${response.newRoleTitle}', '${response.newRoleSalary}', ${result[0].id.toString()})`, (err, result) => {
                         if (err) {
                             console.log(err);
                         }
-                        // Insert blank line before result for better readability
+
                         console.log(`\n ${response.newRoleTitle} role added.\n`);
                         init();
                     });
@@ -131,20 +128,21 @@ function addRole() {
 
 
 // ***ADD EMPLOYEE*** 
-// This function prompts the user for input. The user inputs are then used to add a new employee to the database.
+// This function prompts the user for inputs to add a new employee to the database.
 function addEmployee() {
 
+    // variables to hold arrays to populate menus for 'newEmployeeRole' and 'newEmployeeMgr' prompts
     var rolesMenu;
     var managersMenu;
 
-    // Execute the query
+    // Queries the database to return an array containing all role titles.
     function rolesQuery() {
         return new Promise((resolve, reject) => {
-            db.query('SELECT title FROM role', (err, result) => {
+            db.query('SELECT title FROM role WHERE title != "-unassigned-"', (err, result) => {
                 if (err) {
                     reject(err);
                 } else {
-                    // Define a variable that will hold the manager names pulled from the database. This will be used to populate the selection menu for the manager prompt.
+
                     rolesMenu = result.map((row) => row.title);
                     resolve()
                 }
@@ -152,6 +150,7 @@ function addEmployee() {
         });
     };
 
+    // Queries the database to return all manager first and last names concatentated into a single 'managers' array.
     function managersQuery() {
         return new Promise((resolve, reject) => {
 
@@ -162,7 +161,7 @@ function addEmployee() {
                 if (err) {
                     reject(err);
                 } else {
-                    // Define a variable that will hold the manager names pulled from the database. This will be used to populate the selection menu for the manager prompt.
+
                     managersMenu = result.map((row) => row.managers);
                     resolve();
                 }
@@ -170,6 +169,7 @@ function addEmployee() {
         });
     };
 
+    // Execute both functions in sequence. Then step user through inputs with prompts.
     rolesQuery()
         .then(() => managersQuery())
         .then(() => {
@@ -235,7 +235,7 @@ function addEmployee() {
                                 if (err) {
                                     console.log(err);
                                 } else {
-                                    // Insert blank line before result for better readability
+
                                     console.log(`\n ${response.newEmployeeFirst} ${response.newEmployeeLast} added.\n`);
                                     init();
                                 };
@@ -249,10 +249,11 @@ function addEmployee() {
 // This function prompts the user to choose an employee and then choose the new role to assign to the employee, and updates the database.
 function updateEmployeeRole() {
 
+    // variables to hold arrays to populate menus for 'selectedEmployee' and 'newEmployeeRole' prompts
     var employeesMenu;
     var rolesMenu;
 
-    // Execute the query
+    // Queries the database to return an array containing all employee names (concatenated id, first_name, last_name).
     function employeesQuery() {
         return new Promise((resolve, reject) => {
 
@@ -263,7 +264,7 @@ function updateEmployeeRole() {
                 if (err) {
                     reject(err);
                 } else {
-                    // Define a variable that will hold the employee names pulled from the database. This will be used to populate the selection menu for the employee selection prompt.
+
                     employeesMenu = result.map((row) => row.employees);
                     resolve();
                 }
@@ -271,13 +272,14 @@ function updateEmployeeRole() {
         });
     };
 
+    // Queries the database to return an array containing all role titles.
     function rolesQuery() {
         return new Promise((resolve, reject) => {
             db.query('SELECT title FROM role', (err, result) => {
                 if (err) {
                     reject(err);
                 } else {
-                    // Define a variable that will hold the role names pulled from the database. This will be used to populate the selection menu for the roles prompt.
+
                     rolesMenu = result.map((row) => row.title);
                     resolve()
                 }
@@ -285,6 +287,7 @@ function updateEmployeeRole() {
         });
     };
 
+    // Execute both functions in sequence. Then step user through inputs with prompts.
     employeesQuery()
         .then(() => rolesQuery())
         .then(() => {
@@ -334,7 +337,7 @@ function updateEmployeeRole() {
                                 if (err) {
                                     console.log(err);
                                 } else {
-                                    // Insert blank line before result for better readability
+
                                     console.log(`\n ${employee_name} changed to ${response.newEmployeeRole}.\n`);
                                     init();
                                 };
@@ -348,10 +351,11 @@ function updateEmployeeRole() {
 // This function prompts the user to choose an employee and then choose the new role to assign to the employee, and updates the database.
 function updateEmployeeMgr() {
 
+    // variables to hold arrays to populate menus for 'selectedEmployee' and 'newEmployeeMgr' prompts
     var employeesMenu;
     var managersMenu;
 
-    // Execute the query
+    // Queries the database to return an array containing all employee names (concatenated id, first_name, last_name).
     function employeesQuery() {
         return new Promise((resolve, reject) => {
 
@@ -370,6 +374,7 @@ function updateEmployeeMgr() {
         });
     };
 
+    // Queries the database to return an array containing all manager names (concatenated manager_id, first_name, last_name).
     function managersQuery() {
         return new Promise((resolve, reject) => {
 
@@ -380,7 +385,7 @@ function updateEmployeeMgr() {
                 if (err) {
                     reject(err);
                 } else {
-                    // Define a variable that will hold the manager names pulled from the database. This will be used to populate the selection menu for the manager prompt.
+
                     managersMenu = result.map((row) => row.managers);
                     resolve();
                 }
@@ -388,6 +393,7 @@ function updateEmployeeMgr() {
         });
     };
 
+    // Execute both functions in sequence. Then step user through inputs with prompts.
     employeesQuery()
         .then(() => managersQuery())
         .then(() => {
@@ -425,7 +431,7 @@ function updateEmployeeMgr() {
                         if (err) {
                             console.log(err);
                         } else {
-                            // Insert blank line before result for better readability
+
                             console.log(`\n ${manager_name} is now the manager for ${employee_name}.\n`);
                             init();
                         };
@@ -438,19 +444,20 @@ function updateEmployeeMgr() {
 // This function prompts the user to choose a role to delete from the database. All users assigned to the role are changed to the "-unassigned-" role.
 function deleteRole() {
 
+    // variable to hold array to populate menu for 'selectedRole' prompt
     var rolesMenu;
 
     // Assign query .sql file to variable
     let sql = fs.readFileSync(`./db/role_titles_query.sql`, 'utf-8');
 
-    // Execute a query for roles to populate the selection menu
+    // Queries the database to return an array containing all role titles.
     function rolesQuery() {
         return new Promise((resolve, reject) => {
             db.query(sql, (err, result) => {
                 if (err) {
                     reject(err);
                 } else {
-                    // Define a variable that will hold the role names pulled from the database. This will be used to populate the selection menu for the manager prompt.
+
                     rolesMenu = result.map((row) => row.title);
                     resolve()
                 }
@@ -496,7 +503,7 @@ function deleteRole() {
                                             if (err) {
                                                 reject(err);
                                             } else {
-                                                // Define a variable that will hold the role names pulled from the database. This will be used to populate the selection menu for the manager prompt.
+
                                                 roleIDToBeDeleted = result.map((row) => row.id);
                                                 resolve()
                                             }
@@ -505,9 +512,11 @@ function deleteRole() {
                                 };
                             }
 
+
                             getRoleID()
                                 .then(() => {
 
+                                    // Queries the database to update the employee records containing the role_id with the "-unassigned-" role.
                                     function updateAffectedEmployees() {
                                         return new Promise((resolve, reject) => {
                                             db.query(`UPDATE employee SET role_id = 1 WHERE role_id = '${roleIDToBeDeleted[0]}'`, (err, result) => {
@@ -523,7 +532,7 @@ function deleteRole() {
                                     updateAffectedEmployees()
                                         .then(() => {
 
-                                            // Run query to update the database and display results in the console:
+                                            // Queries the database to delete the role.
                                             db.query(`DELETE from role WHERE title = '${selectedRole}'`, (err, result) => {
                                                 if (err) {
                                                     console.log(err);
@@ -547,9 +556,10 @@ function deleteRole() {
 // This function prompts the user to choose an employee to delete from the database.
 function deleteEmployee() {
 
+    // variable to hold array to populate menu for 'selectedEmployee' prompt
     var employeesMenu;
 
-    // Execute a query for roles to populate the selection menu
+    // Queries the database to return an array containing all employee names (concatenated id, first_name, last_name).
     function employeesQuery() {
         return new Promise((resolve, reject) => {
 
@@ -560,7 +570,7 @@ function deleteEmployee() {
                 if (err) {
                     reject(err);
                 } else {
-                    // Define a variable that will hold the employee names pulled from the database. This will be used to populate the selection menu for the employee selection prompt.
+                    
                     employeesMenu = result.map((row) => row.employees);
                     resolve();
                 }
@@ -603,12 +613,12 @@ function deleteEmployee() {
                                 let numbersEmployee = selectedEmployee.match(/\d+/g);
                                 var employee_id = numbersEmployee[0];
 
-                                // Run query to update the database and display results in the console:
+                                // Run query to delete employee from database.
                                 db.query(`DELETE from employee WHERE id = ${employee_id}`, (err, result) => {
                                     if (err) {
                                         console.log(err);
                                     } else {
-                                        // Insert blank line before result for better readability
+                                        
                                         console.log(`\n ${selectedEmployee} deleted.\n`);
                                         init();
                                     };
@@ -627,9 +637,10 @@ function deleteEmployee() {
 // This function prompts the user to choose a department to delete from the database. All users assigned to the department are changed to the "-unassigned-" role.
 function deleteDepartment() {
 
+    // variable to hold array to populate menu for 'selectedDept' prompt
     var departmentsMenu;
 
-    // Execute a query for roles to populate the selection menu
+    // Queries the database to return an array containing all department names.
     function departmentsQuery() {
         return new Promise((resolve, reject) => {
 
@@ -637,7 +648,7 @@ function deleteDepartment() {
                 if (err) {
                     reject(err);
                 } else {
-                    // Define a variable that will hold the department names pulled from the database. This will be used to populate the selection menu for the department selection prompt.
+                    
                     departmentsMenu = result.map((row) => row.name);
                     resolve();
                 }
@@ -678,7 +689,8 @@ function deleteDepartment() {
 
                                 var deptIDToBeDeleted;
 
-                                function getRoleID() {
+                                // Queries the database to return the id of the department to be deleted.
+                                function getDeptID() {
                                     return new Promise((resolve, reject) => {
                                         db.query(`SELECT id FROM department WHERE name = '${selectedDept}'`, (err, result) => {
                                             if (err) {
@@ -692,9 +704,10 @@ function deleteDepartment() {
                                 };
                             }
 
-                            getRoleID()
+                            getDeptID()
                                 .then(() => {
 
+                                    // Queries the database to change the role of all affected employees to the "-unassigned-" role.
                                     function updateAffectedEmployees() {
                                         return new Promise((resolve, reject) => {
                                             db.query(`UPDATE employee JOIN role ON employee.role_id = role.id JOIN department ON role.department_id = department.id SET employee.role_id = 1 WHERE role.department_id = ${deptIDToBeDeleted[0]}`, (err, result) => {
@@ -710,12 +723,12 @@ function deleteDepartment() {
                                     updateAffectedEmployees()
                                         .then(() => {
 
-                                            // Run query to update the database and display results in the console:
-                                            db.query(`DELETE department, role FROM department JOIN role ON department.id = role.department_id WHERE department.id = '${deptIDToBeDeleted[0]}' AND role.department_id = '${deptIDToBeDeleted[0]}'`, (err, result) => {
+                                            // Queries the database to delete the department and any associated roles.
+                                            db.query(`DELETE FROM department WHERE id = ${deptIDToBeDeleted[0]}`, (err, result) => {
                                                 if (err) {
                                                     console.log(err);
                                                 } else {
-                                                    // Insert blank line before result for better readability
+                                                    
                                                     console.log(`\n ${selectedDept} department deleted.\n`);
                                                     init();
                                                 };
@@ -730,10 +743,10 @@ function deleteDepartment() {
         });
 };
 
-// ***VIEW BUDGET OPTIONS SUB-MENU***
+// ***BUDGET VIEW OPTIONS SUB-MENU***
 // This function provides the menu options under the View Budget Options selection.
 function budgetSubmenu() {
-    console.log('\n------------------VIEW BUDGET OPTIONS--------------------\n');
+    console.log('\n------------------BUDGET VIEW OPTIONS--------------------\n');
 
     // Inquirer prompts:
     inquirer
@@ -812,7 +825,7 @@ function deleteSubmenu() {
 
 };
 
-// This function executes the program.
+// This function handles the Main Menu functionality.
 function init() {
     console.log('\n---------------------MAIN MENU----------------------\n');
 
@@ -876,7 +889,7 @@ function init() {
                 case 'Delete Options...':
                     deleteSubmenu();
                     break;
-                    case 'Budget View Options...':
+                case 'Budget View Options...':
                     budgetSubmenu();
                     break;
                 default:
@@ -886,6 +899,7 @@ function init() {
 
 };
 
+// Program launch
 console.log('******************EMPLOYEE TRACKER******************');
 init();
 
